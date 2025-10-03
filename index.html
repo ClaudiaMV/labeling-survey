@@ -5,13 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Labeling Survey</title>
 
+  <!-- Your custom CSS -->
   <link rel="stylesheet" href="styles.css"/>
 
-<script src="https://unpkg.com/jspsych@7.3.3/dist/jspsych.js"></script>
-<script src="https://unpkg.com/jspsych@7.3.3/dist/plugins/jspsych-html-button-response.js"></script>
-<script src="https://unpkg.com/jspsych@7.3.3/dist/plugins/jspsych-html-keyboard-response.js"></script>
-<link href="https://unpkg.com/jspsych@7.3.3/dist/jspsych.css" rel="stylesheet" />
-
+  <!-- jsPsych v7 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspsych@7.3.3/css/jspsych.css">
 </head>
 <body>
   <div class="container" id="app">
@@ -19,7 +17,7 @@
     <p>Loading…</p>
   </div>
 
-  <!-- Your experiment logic (CSV loader version) -->
-  <script src="experiment.js"></script>
+  <!-- Load your experiment as a module -->
+  <script type="module" src="experiment.js"></script>
 </body>
 </html>
