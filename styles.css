@@ -1,14 +1,67 @@
+/* styles.css — minimal, clean */
 
-body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:#fafafa; color:#222; }
-.container { max-width: 900px; margin: 40px auto; background:#fff; padding: 28px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
-h1, h2, h3 { margin: 0 0 12px; }
-hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
-.label-chip { display:inline-block; padding:6px 10px; border-radius:12px; border:1px solid #ddd; margin:4px; cursor:pointer; user-select:none; }
-.label-chip input { margin-right: 6px; }
-.actions { margin-top: 20px; display:flex; gap:12px; }
-button, .jspsych-btn { padding:10px 16px; border-radius:10px; border:1px solid #ddd; background:#f4f4f4; cursor:pointer; }
-button:hover, .jspsych-btn:hover { background:#efefef; }
-.small { color:#666; font-size: 12px; }
-.range-wrap { display:flex; align-items:center; gap:12px; }
+:root {
+  --bg: #fafafa;
+  --card: #ffffff;
+  --text: #222;
+  --muted: #666;
+  --border: #e7e7e7;
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(0,0,0,.06);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  background: var(--card);
+  padding: 28px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+h1, h2, h3 { margin: 0 0 12px; font-weight: 700; }
+p { line-height: 1.5; margin: 0 0 14px; }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  background: #f8f8f8;
+}
+
+.actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+button, .jspsych-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #f4f4f4;
+  cursor: pointer;
+  font-size: 14px;
+}
+button:hover, .jspsych-btn:hover { background: #efefef; }
+
+.small { color: var(--muted); font-size: 12px; }
+
+.range-wrap { display: flex; align-items: center; gap: 12px; }
 .range-wrap input[type=range] { width: 300px; }
-footer { margin-top: 30px; color:#777; font-size: 12px; text-align:center; }
+
+/* Mobile tweaks */
+@media (max-width: 640px) {
+  .container { margin: 16px; padding: 20px; }
+  .range-wrap input[type=range] { width: 100%; }
+}
