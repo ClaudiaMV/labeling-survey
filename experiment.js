@@ -4,7 +4,7 @@
 // - Optional reproducible order via ?seed=STRING
 // - Optional Apps Script endpoint for Google Sheets saving
 
-const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxhPPckDrcYJk_6BzwHXxDS_FJaQcReKurmt4Zabvt631QNtvmDs2GE70wEKPOI_V5b/exec"; // leave blank to download CSV locally
+const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbw5R3FyHF2YcoRb_9FItK3Ye08Ow3x9CVVbZSCenU3IMbFyTqvJBslB7ELWAiQ24jA2/exec"; // leave blank to download CSV locally
 const REQUIRE_AT_LEAST_ONE_LABEL = true;
 
 // ---------- CSV parsing ----------
