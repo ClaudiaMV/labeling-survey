@@ -1,0 +1,14 @@
+
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:#fafafa; color:#222; }
+.container { max-width: 900px; margin: 40px auto; background:#fff; padding: 28px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+h1, h2, h3 { margin: 0 0 12px; }
+hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+.label-chip { display:inline-block; padding:6px 10px; border-radius:12px; border:1px solid #ddd; margin:4px; cursor:pointer; user-select:none; }
+.label-chip input { margin-right: 6px; }
+.actions { margin-top: 20px; display:flex; gap:12px; }
+button, .jspsych-btn { padding:10px 16px; border-radius:10px; border:1px solid #ddd; background:#f4f4f4; cursor:pointer; }
+button:hover, .jspsych-btn:hover { background:#efefef; }
+.small { color:#666; font-size: 12px; }
+.range-wrap { display:flex; align-items:center; gap:12px; }
+.range-wrap input[type=range] { width: 300px; }
+footer { margin-top: 30px; color:#777; font-size: 12px; text-align:center; }
