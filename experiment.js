@@ -1,3 +1,8 @@
+// --- ESM imports (v7) ---
+import { initJsPsych } from "https://cdn.jsdelivr.net/npm/jspsych@7.3.3/dist/index.js";
+import HtmlButtonResponse from "https://cdn.jsdelivr.net/npm/@jspsych/plugin-html-button-response@1.1.3/dist/index.js";
+import HtmlKeyboardResponse from "https://cdn.jsdelivr.net/npm/@jspsych/plugin-html-keyboard-response@1.1.3/dist/index.js";
+
 // experiment.js  — CSV, reusable for any number of narrations
 // - Uses ALL narrations by default (no fixed cap)
 // - Control count via ?n=all or ?n=NUMBER (e.g., ?n=30)
@@ -36,7 +41,6 @@ function parseCSV(text) {
 
 // ---------- Seeded RNG (for reproducible shuffles) ----------
 function xmur3(str) {
-  // small string hash → uint32
   let h = 1779033703 ^ str.length;
   for (let i=0; i<str.length; i++) {
     h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
@@ -87,25 +91,22 @@ async function loadNarrationsCSV() {
   const headers = rows[0].map(h => h.trim());
   const dataRows = rows.slice(1);
 
-  // Build objects with all columns preserved
   const arr = dataRows.map(r => {
     const o = {};
     headers.forEach((h, i) => { o[h] = (r[i] ?? "").toString().trim(); });
     return o;
   });
 
-  // Detect required columns (case-insensitive)
   const lower = headers.map(h => h.toLowerCase());
   const idKey =
     headers[lower.indexOf("narration_id")] ??
     headers[lower.indexOf("id")] ??
-    headers[0]; // fallback first col
+    headers[0];
   const textKey =
     headers[lower.indexOf("narration_text")] ??
     headers[lower.indexOf("text")] ??
     headers[lower.indexOf("narration")] ??
-    headers[1]; // fallback second col
-  // Optional enabled column
+    headers[1];
   const enabledKey = (function(){
     const candidates = ["enabled", "include", "use", "active"];
     for (const c of candidates) {
@@ -115,14 +116,13 @@ async function loadNarrationsCSV() {
     return null;
   })();
 
-  // Map + optional filter by enabled == truthy (1/true/yes)
   const truthy = v => /^(1|true|yes|y)$/i.test((v || "").toString().trim());
   const out = [];
   for (const row of arr) {
     const narration_id = (row[idKey] || "").toString().trim();
     const narration_text = (row[textKey] || "").toString().trim();
     if (!narration_id || !narration_text) continue;
-    if (enabledKey && !truthy(row[enabledKey])) continue; // if enabled column exists, require truthy
+    if (enabledKey && !truthy(row[enabledKey])) continue;
     out.push({ narration_id, narration_text });
   }
   return out;
@@ -170,14 +170,12 @@ function trialHTML(narration, bank) {
 
 // ---------- Main ----------
 (async function main(){
-  // URL controls: ?n=all or ?n=NUMBER, ?seed=STRING, ?pid=
   const qs = new URLSearchParams(window.location.search);
   const nParam = (qs.get("n") || "").toLowerCase();
   const seedParam = qs.get("seed") || "";
   const pid = qs.get("pid") || window.prompt("Participant ID (e.g., P01):", "") || "";
   const session = "001";
 
-  // Load full pool
   const narrations = await loadNarrationsCSV();
   const totalAvailable = narrations.length;
   if (totalAvailable === 0) {
@@ -185,10 +183,8 @@ function trialHTML(narration, bank) {
     return;
   }
 
-  // Choose order (seeded if provided)
   const ordered = seededShuffle(narrations, seedParam);
 
-  // Determine how many to run
   let target = Infinity;
   if (nParam && nParam !== "all") {
     const n = parseInt(nParam, 10);
@@ -197,10 +193,8 @@ function trialHTML(narration, bank) {
   const items = ordered.slice(0, Math.min(target, totalAvailable));
   const N_TRIALS = items.length;
 
-  // Participant-level label bank
   const labelBank = [];
 
-  // Init jsPsych
   const jsPsych = initJsPsych({
     on_finish: async function(){
       const payload = {
@@ -235,7 +229,7 @@ function trialHTML(narration, bank) {
 
   // Welcome
   timeline.push({
-    type: jsPsychHtmlButtonResponse,
+    type: HtmlButtonResponse,
     stimulus: `
       <div class="container">
         <h2>Welcome</h2>
@@ -250,7 +244,7 @@ function trialHTML(narration, bank) {
   // Trials
   items.forEach((item, idx) => {
     timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
+      type: HtmlKeyboardResponse,
       choices: "NO_KEYS",
       stimulus: function(){
         return `<div class="container">${trialHTML(item, labelBank)}</div>`;
@@ -292,7 +286,7 @@ function trialHTML(narration, bank) {
 
   // End
   timeline.push({
-    type: jsPsychHtmlButtonResponse,
+    type: HtmlButtonResponse,
     stimulus: `<div class="container"><h2>End</h2><p>Thanks for participating!</p></div>`,
     choices: ["Submit"]
   });
