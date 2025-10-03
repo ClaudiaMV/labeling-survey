@@ -8,7 +8,7 @@
 // - Saves to Google Sheets via Apps Script (if configured) OR downloads CSV locally
 
 // ========================= CONFIG =========================
-const APPS_SCRIPT_ENDPOINT = "YOUR_APPS_SCRIPT_DEPLOYMENT_URL"; // <-- paste your Google Apps Script Web App URL or leave blank to download CSV
+const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbypuBymSX2YQlOyokXJTddDp347fLhT59IwIAmeCUHR0Oc-2x_ZRTZhiZPiBE5t8-o7/exec"; // <-- paste your Google Apps Script Web App URL or leave blank to download CSV
 const N_TRIALS = 30; // enforce exactly 30 narrations per participant
 const REQUIRE_AT_LEAST_ONE_LABEL = true; // set to false to allow empty label entries
 // ==========================================================
