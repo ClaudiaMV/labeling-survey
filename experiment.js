@@ -1,45 +1,27 @@
-// experiment.js  (CSV version)
-// Labeling Survey on jsPsych (hostable on GitHub Pages)
-// - Loads narrations from narrations.csv (two columns: narration_id,narration_text)
-// - 30 narrations randomized per participant
-// - Participant-level label suggestions that grow across trials
-// - New labels (comma-separated) + selectable prior labels
-// - 1–7 memory rating slider
-// - Saves to Google Sheets via Apps Script (if configured) OR downloads CSV locally
+// experiment.js  — CSV, reusable for any number of narrations
+// - Uses ALL narrations by default (no fixed cap)
+// - Control count via ?n=all or ?n=NUMBER (e.g., ?n=30)
+// - Optional reproducible order via ?seed=STRING
+// - Optional Apps Script endpoint for Google Sheets saving
 
-// ========================= CONFIG =========================
-const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbypuBymSX2YQlOyokXJTddDp347fLhT59IwIAmeCUHR0Oc-2x_ZRTZhiZPiBE5t8-o7/exec"; // <-- paste your Google Apps Script Web App URL or leave blank to download CSV
-const N_TRIALS = 30; // enforce exactly 30 narrations per participant
-const REQUIRE_AT_LEAST_ONE_LABEL = true; // set to false to allow empty label entries
-// ==========================================================
+const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxhPPckDrcYJk_6BzwHXxDS_FJaQcReKurmt4Zabvt631QNtvmDs2GE70wEKPOI_V5b/exec"; // leave blank to download CSV locally
+const REQUIRE_AT_LEAST_ONE_LABEL = true;
 
-// ------- Minimal CSV parser supporting quotes & commas -------
+// ---------- CSV parsing ----------
 function parseCSV(text) {
-  // Normalizes newlines and parses a simple CSV with quoted fields
-  // Returns an array of objects based on header row
   const rows = [];
   const s = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  let i = 0, field = "", row = [];
-  let inQuotes = false;
-
-  function endField() {
-    row.push(field);
-    field = "";
-  }
-  function endRow() {
-    rows.push(row);
-    row = [];
-  }
-
+  let i = 0, field = "", row = [], inQuotes = false;
+  function endField(){ row.push(field); field=""; }
+  function endRow(){ rows.push(row); row=[]; }
   while (i < s.length) {
     const c = s[i];
     if (inQuotes) {
       if (c === '"') {
-        if (s[i + 1] === '"') { field += '"'; i += 2; continue; } // escaped quote
+        if (s[i+1] === '"') { field += '"'; i+=2; continue; }
         inQuotes = false; i++; continue;
-      } else {
-        field += c; i++; continue;
       }
+      field += c; i++; continue;
     } else {
       if (c === '"') { inQuotes = true; i++; continue; }
       if (c === ",") { endField(); i++; continue; }
@@ -47,38 +29,106 @@ function parseCSV(text) {
       field += c; i++; continue;
     }
   }
-  // flush last field/row
   endField();
   if (row.length > 1 || (row.length === 1 && row[0] !== "")) endRow();
-
-  if (rows.length === 0) return [];
-  const headers = rows[0].map(h => h.trim());
-  return rows.slice(1).map(r => {
-    const obj = {};
-    headers.forEach((h, idx) => { obj[h] = (r[idx] ?? "").trim(); });
-    return obj;
-  });
+  return rows;
 }
 
-// ------- Load narrations from CSV in repo root -------
-async function loadNarrationsCSV() {
-  const res = await fetch("narrations.csv", { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load narrations.csv");
-  const text = await res.text();
-  const arr = parseCSV(text);
-  // Expect headers: narration_id,narration_text
-  return arr.filter(x => x.narration_id && x.narration_text);
+// ---------- Seeded RNG (for reproducible shuffles) ----------
+function xmur3(str) {
+  // small string hash → uint32
+  let h = 1779033703 ^ str.length;
+  for (let i=0; i<str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return function() {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return (h ^= h >>> 16) >>> 0;
+  };
 }
-
-// ------- Utilities -------
-function shuffle(array) {
+function mulberry32(a) {
+  return function() {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function seededShuffle(array, seedStr) {
+  if (!seedStr) return shuffle(array);
+  const seed = xmur3(String(seedStr))();
+  const rand = mulberry32(seed);
   const a = array.slice();
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
+function shuffle(array) {
+  const a = array.slice();
+  for (let i=a.length-1;i>0;i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---------- Load narrations from CSV (auto-map columns) ----------
+async function loadNarrationsCSV() {
+  const res = await fetch("narrations.csv", { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load narrations.csv");
+  const text = await res.text();
+  const rows = parseCSV(text);
+  if (!rows || rows.length < 2) return [];
+
+  const headers = rows[0].map(h => h.trim());
+  const dataRows = rows.slice(1);
+
+  // Build objects with all columns preserved
+  const arr = dataRows.map(r => {
+    const o = {};
+    headers.forEach((h, i) => { o[h] = (r[i] ?? "").toString().trim(); });
+    return o;
+  });
+
+  // Detect required columns (case-insensitive)
+  const lower = headers.map(h => h.toLowerCase());
+  const idKey =
+    headers[lower.indexOf("narration_id")] ??
+    headers[lower.indexOf("id")] ??
+    headers[0]; // fallback first col
+  const textKey =
+    headers[lower.indexOf("narration_text")] ??
+    headers[lower.indexOf("text")] ??
+    headers[lower.indexOf("narration")] ??
+    headers[1]; // fallback second col
+  // Optional enabled column
+  const enabledKey = (function(){
+    const candidates = ["enabled", "include", "use", "active"];
+    for (const c of candidates) {
+      const idx = lower.indexOf(c);
+      if (idx !== -1) return headers[idx];
+    }
+    return null;
+  })();
+
+  // Map + optional filter by enabled == truthy (1/true/yes)
+  const truthy = v => /^(1|true|yes|y)$/i.test((v || "").toString().trim());
+  const out = [];
+  for (const row of arr) {
+    const narration_id = (row[idKey] || "").toString().trim();
+    const narration_text = (row[textKey] || "").toString().trim();
+    if (!narration_id || !narration_text) continue;
+    if (enabledKey && !truthy(row[enabledKey])) continue; // if enabled column exists, require truthy
+    out.push({ narration_id, narration_text });
+  }
+  return out;
+}
+
+// ---------- Helpers ----------
 function splitClean(s) {
   if (!s) return [];
   return s.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
@@ -118,27 +168,41 @@ function trialHTML(narration, bank) {
   </div>`;
 }
 
-// ------- Main -------
-(async function main() {
-  // Get participant ID (use query string ?pid=P01 if you like)
-  const urlParams = new URLSearchParams(window.location.search);
-  const pidQS = urlParams.get("pid") || "";
-  const pid = pidQS || window.prompt("Participant ID (e.g., P01):", "") || "";
+// ---------- Main ----------
+(async function main(){
+  // URL controls: ?n=all or ?n=NUMBER, ?seed=STRING, ?pid=
+  const qs = new URLSearchParams(window.location.search);
+  const nParam = (qs.get("n") || "").toLowerCase();
+  const seedParam = qs.get("seed") || "";
+  const pid = qs.get("pid") || window.prompt("Participant ID (e.g., P01):", "") || "";
   const session = "001";
 
-  // Load & choose narrations
+  // Load full pool
   const narrations = await loadNarrationsCSV();
-  if (narrations.length < N_TRIALS) {
-    alert(`narrations.csv has only ${narrations.length} rows; ${N_TRIALS} required.`);
+  const totalAvailable = narrations.length;
+  if (totalAvailable === 0) {
+    alert("No narrations found in narrations.csv");
+    return;
   }
-  const items = shuffle(narrations).slice(0, N_TRIALS);
 
-  // Participant-level label bank (suggestions)
+  // Choose order (seeded if provided)
+  const ordered = seededShuffle(narrations, seedParam);
+
+  // Determine how many to run
+  let target = Infinity;
+  if (nParam && nParam !== "all") {
+    const n = parseInt(nParam, 10);
+    if (!isNaN(n) && n > 0) target = n;
+  }
+  const items = ordered.slice(0, Math.min(target, totalAvailable));
+  const N_TRIALS = items.length;
+
+  // Participant-level label bank
   const labelBank = [];
 
   // Init jsPsych
   const jsPsych = initJsPsych({
-    on_finish: async function () {
+    on_finish: async function(){
       const payload = {
         participant: pid,
         session: session,
@@ -146,8 +210,6 @@ function trialHTML(narration, bank) {
         records: jsPsych.data.get().values(),
         final_label_bank: labelBank
       };
-
-      // Try posting to Google Apps Script
       if (APPS_SCRIPT_ENDPOINT && APPS_SCRIPT_ENDPOINT.startsWith("https")) {
         try {
           await fetch(APPS_SCRIPT_ENDPOINT, {
@@ -163,7 +225,6 @@ function trialHTML(narration, bank) {
           jsPsych.data.get().localSave("csv", (pid || "participant") + "_labeling.csv");
         }
       } else {
-        // Fallback: local CSV download
         jsPsych.data.get().localSave("csv", (pid || "participant") + "_labeling.csv");
         alert("Finished. A CSV download should start now.");
       }
@@ -178,6 +239,7 @@ function trialHTML(narration, bank) {
     stimulus: `
       <div class="container">
         <h2>Welcome</h2>
+        <p>This session contains <strong>${N_TRIALS}</strong> narrations (from ${totalAvailable} available).</p>
         <p>For each narration, select any labels from your own growing suggestion list (it starts empty), and/or add new labels (comma-separated).</p>
         <p>Then rate how well you remember the video described (1–7).</p>
       </div>
@@ -190,31 +252,26 @@ function trialHTML(narration, bank) {
     timeline.push({
       type: jsPsychHtmlKeyboardResponse,
       choices: "NO_KEYS",
-      stimulus: function () {
+      stimulus: function(){
         return `<div class="container">${trialHTML(item, labelBank)}</div>`;
       },
-      on_load: function () {
-        const btn = document.getElementById("next_btn");
-        btn.addEventListener("click", () => {
+      on_load: function(){
+        document.getElementById("next_btn").addEventListener("click", () => {
           const checked = Array.from(document.querySelectorAll('input[name="existing"]:checked')).map(i => i.value);
           const newLabels = splitClean(document.getElementById("new_labels").value);
-          const combined = [...checked, ...newLabels].filter((v, i, a) => a.indexOf(v) === i);
+          const combined = [...checked, ...newLabels].filter((v,i,a)=>a.indexOf(v)===i);
 
           if (REQUIRE_AT_LEAST_ONE_LABEL && combined.length === 0) {
             alert("Please select at least one label or add a new one.");
             return;
           }
 
-          // Update participant-level bank
-          combined.forEach(lbl => {
-            if (!labelBank.includes(lbl)) labelBank.push(lbl);
-          });
-
+          combined.forEach(lbl => { if (!labelBank.includes(lbl)) labelBank.push(lbl); });
           const memory_rating = parseInt(document.getElementById("mem").value, 10);
 
-          // Store trial row
           jsPsych.data.write({
             trial_index: idx + 1,
+            n_trials_total: N_TRIALS,
             narration_id: item.narration_id,
             narration_text: item.narration_text,
             selected_labels: checked.join(","),
@@ -223,7 +280,8 @@ function trialHTML(narration, bank) {
             memory_rating: memory_rating,
             label_bank_snapshot: labelBank.join(","),
             participant: pid,
-            session: session
+            session: session,
+            seed: seedParam || ""
           });
 
           jsPsych.finishTrial();
@@ -241,4 +299,3 @@ function trialHTML(narration, bank) {
 
   jsPsych.run(timeline);
 })();
-
