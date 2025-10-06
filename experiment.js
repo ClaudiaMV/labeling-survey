@@ -65,7 +65,6 @@ const INSTRUCTIONS_HTML = `
     </ul>
 
     <div style="margin-top:14px; font-style:italic;">
-      Note: In the interface below, we call these <strong>labels</strong>. Treat “labels” as the categories you are creating.
     </div>
   </div>
 `;
@@ -194,7 +193,7 @@ function splitClean(s) {
 }
 function chipsHTML(bank) {
   if (!bank || bank.length === 0) {
-    return '<div class="small">No suggestions yet — your own labels will appear here on later items.</div>';
+    return '<div class="small">No suggestions yet — your own categories will appear here on later items.</div>';
   }
   return bank.map(lbl => {
     const esc = lbl.replace(/"/g, "&quot;");
@@ -210,7 +209,7 @@ function trialHTML(narration, bank) {
     <h3>Select from your suggestions</h3>
     <div>${chipsHTML(bank)}</div>
     <div style="margin-top:12px;">
-      <label><strong>Add NEW labels</strong> (comma-separated):</label><br>
+      <label><strong>Add NEW category</strong> (comma-separated):</label><br>
       <input id="new_labels" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;" placeholder="e.g., kitchen, fridge, search"/>
     </div>
     <hr>
@@ -293,7 +292,7 @@ timeline.push({
     <div class="container">
       <h2>Welcome</h2>
       <p>This session contains <strong>${N_TRIALS}</strong> narrations (from ${totalAvailable} available).</p>
-      <p>For each narration, you will create <strong>categories</strong> (called “labels” in the interface) that capture the main kinds of information in the scene.</p>
+      <p>For each narration, you will create <strong>categories</strong> that capture the main kinds of information in the scene.</p>
       <p>Next, you'll see detailed instructions and an example.</p>
     </div>
   `,
