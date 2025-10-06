@@ -33,19 +33,6 @@ const INSTRUCTIONS_HTML = `
         <ul>
           <li>For each narration, list the <strong>broad categories</strong> that could capture the main information in the scene.</li>
           <li>Each category should be general enough to apply to other narrations.</li>
-        </ul>
-        <div style="border-left:4px solid #ddd; padding:8px 12px; margin:10px 0;">
-          <strong>Example</strong><br>
-          <em>Narration:</em> “A woman waters the flowers in her garden while a dog plays nearby.”<br>
-          <em>Possible categories:</em>
-          <ul style="margin:6px 0 0 18px;">
-            <li><strong>Location / Setting</strong> (garden)</li>
-            <li><strong>Action / Activity</strong> (watering, playing)</li>
-            <li><strong>People / Agents</strong> (woman, dog)</li>
-            <li><strong>Objects</strong> (flowers, watering can)</li>
-          </ul>
-        </div>
-      </li>
       <li><strong>Avoid narrative retelling.</strong>
         <ul><li>You are not re-describing the scene. Instead, identify <em>types</em> or <em>dimensions</em> of information that appear in the narration.</li></ul>
       </li>
@@ -61,7 +48,7 @@ const INSTRUCTIONS_HTML = `
     <ul>
       <li>Categories describe <strong>what kind of information</strong> the narration conveys, not specific content from one video.</li>
       <li>Ask yourself whether your categories would still make sense for a completely different narration.</li>
-      <li>There are no “right” or “wrong” answers — we’re interested in how people naturally organize descriptive information.</li>
+      <li>There are no “right” or “wrong” answers; we’re interested in how people naturally organize descriptive information.</li>
     </ul>
 
     <div style="margin-top:14px; font-style:italic;">
