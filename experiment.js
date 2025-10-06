@@ -127,7 +127,18 @@ function shuffle(array) {
 
 // ---------- Load narrations from CSV (auto-map columns) ----------
 async function loadNarrationsCSV() {
-  const res = await fetch("narrations.csv", { cache: "no-store" });
+ // read ?csv= parameter or fall back to v1
+const qs = new URLSearchParams(window.location.search);
+const csvParam = qs.get("csv") || "data/narrations_v1.csv";
+
+async function loadNarrationsCSV() {
+  const res = await fetch(csvParam, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load " + csvParam);
+  const text = await res.text();
+  const rows = parseCSV(text);
+  // rest of your parsing code stays the same
+}
+, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load narrations.csv");
   const text = await res.text();
   const rows = parseCSV(text);
