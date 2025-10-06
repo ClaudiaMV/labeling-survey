@@ -232,9 +232,8 @@ https://<username>.github.io/labeling-survey/?csv=data/narrations_v3.csv&n=30&pi
 
 ## 🧾 11. Credits
 
-Developed by **Claudia Morales Valiente**  
-Cognitive, Developmental, and Brain Sciences Program — Western University  
-Postdoctoral Researcher, University of Alberta  
+Developed by **Dr. Claudia Morales Valiente**  
+Postdoctoral Researcher | Memory of Events Lab | University of Alberta  
 
 Built with:
 - [jsPsych 7.3.3](https://www.jspsych.org/)
