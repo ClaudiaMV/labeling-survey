@@ -1,16 +1,24 @@
 // --- ESM imports (v7) ---
+// (Resolved by your import map in index.html)
 import { initJsPsych } from "jspsych";
 import HtmlButtonResponse from "@jspsych/plugin-html-button-response";
 import HtmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
 
-// experiment.js  — CSV, reusable for any number of narrations
-// - Uses ALL narrations by default (no fixed cap)
-// - Control count via ?n=all or ?n=NUMBER (e.g., ?n=30)
-// - Optional reproducible order via ?seed=STRING
-// - Optional Apps Script endpoint for Google Sheets saving
+/**
+ * Labeling / Category Survey
+ * - CSV selectable via ?csv= path (default: data/narrations_v1.csv)
+ * - Limit count via ?n=NUMBER or ?n=all
+ * - Reproducible order via ?seed=STRING
+ * - Participant via ?pid=ID (or prompt)
+ * - Per-trial autosave + final upload to Google Apps Script
+ */
 
-const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyghpxnJU60w-XaBq_s-wnpNa9dJd7HGfYpI4Hw-zkjxmKZhc4u4EB9wPsn69MZ0nY1/exec"; // leave blank to download CSV locally
+// ========================== CONFIG ==========================
+const APPS_SCRIPT_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbyghpxnJU60w-XaBq_s-wnpNa9dJd7HGfYpI4Hw-zkjxmKZhc4u4EB9wPsn69MZ0nY1/exec";
 const REQUIRE_AT_LEAST_ONE_LABEL = true;
+
+// ======================= INSTRUCTIONS =======================
 const INSTRUCTIONS_HTML = `
   <div class="container" style="max-width:800px; margin:0 auto; text-align:left;">
     <h2>Instructions</h2>
@@ -33,6 +41,8 @@ const INSTRUCTIONS_HTML = `
         <ul>
           <li>For each narration, list the <strong>broad categories</strong> that could capture the main information in the scene.</li>
           <li>Each category should be general enough to apply to other narrations.</li>
+        </ul>
+      </li>
       <li><strong>Avoid narrative retelling.</strong>
         <ul><li>You are not re-describing the scene. Instead, identify <em>types</em> or <em>dimensions</em> of information that appear in the narration.</li></ul>
       </li>
@@ -50,14 +60,16 @@ const INSTRUCTIONS_HTML = `
       <li>Ask yourself whether your categories would still make sense for a completely different narration.</li>
       <li>There are no “right” or “wrong” answers; we’re interested in how people naturally organize descriptive information.</li>
     </ul>
-
-    <div style="margin-top:14px; font-style:italic;">
-    </div>
   </div>
 `;
 
+// ===================== URL PARAMETERS =======================
+const qs = new URLSearchParams(window.location.search);
+const csvParam = qs.get("csv") || "data/narrations_v1.csv";
+const nParam = (qs.get("n") || "").toLowerCase();
+const seedParam = qs.get("seed") || "";
 
-// ---------- CSV parsing ----------
+// ======================== CSV PARSER ========================
 function parseCSV(text) {
   const rows = [];
   const s = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -84,7 +96,7 @@ function parseCSV(text) {
   return rows;
 }
 
-// ---------- Seeded RNG (for reproducible shuffles) ----------
+// =================== SEEDED RANDOMIZATION ===================
 function xmur3(str) {
   let h = 1779033703 ^ str.length;
   for (let i=0; i<str.length; i++) {
@@ -105,6 +117,14 @@ function mulberry32(a) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+function shuffle(array) {
+  const a = array.slice();
+  for (let i=a.length-1;i>0;i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 function seededShuffle(array, seedStr) {
   if (!seedStr) return shuffle(array);
   const seed = xmur3(String(seedStr))();
@@ -116,30 +136,11 @@ function seededShuffle(array, seedStr) {
   }
   return a;
 }
-function shuffle(array) {
-  const a = array.slice();
-  for (let i=a.length-1;i>0;i--) {
-    const j = Math.floor(Math.random() * (i+1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
-// ---------- Load narrations from CSV (auto-map columns) ----------
-async function loadNarrationsCSV() {
- // read ?csv= parameter or fall back to v1
-const qs = new URLSearchParams(window.location.search);
-const csvParam = qs.get("csv") || "data/narrations_v1.csv";
-
+// ============= LOAD NARRATIONS FROM SELECTED CSV ============
 async function loadNarrationsCSV() {
   const res = await fetch(csvParam, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load " + csvParam);
-  const text = await res.text();
-  const rows = parseCSV(text);
-  // rest of your parsing code stays the same
-}
-, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load narrations.csv");
   const text = await res.text();
   const rows = parseCSV(text);
   if (!rows || rows.length < 2) return [];
@@ -163,9 +164,9 @@ async function loadNarrationsCSV() {
     headers[lower.indexOf("text")] ??
     headers[lower.indexOf("narration")] ??
     headers[1];
-  const enabledKey = (function(){
-    const candidates = ["enabled", "include", "use", "active"];
-    for (const c of candidates) {
+
+  const enabledKey = (() => {
+    for (const c of ["enabled", "include", "use", "active"]) {
       const idx = lower.indexOf(c);
       if (idx !== -1) return headers[idx];
     }
@@ -184,7 +185,7 @@ async function loadNarrationsCSV() {
   return out;
 }
 
-// ---------- Helpers ----------
+// ========================= HELPERS ==========================
 function splitClean(s) {
   if (!s) return [];
   return s.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
@@ -198,6 +199,18 @@ function chipsHTML(bank) {
     return `<label class="label-chip"><input type="checkbox" name="existing" value="${esc}"> ${esc}</label>`;
   }).join("");
 }
+function memoryCheckboxesHTML() {
+  // 1–7 single-choice checkbox group (mutual exclusivity enforced in on_load)
+  let html = `<div id="mem_group" class="mem-checkboxes" style="display:flex; gap:10px; flex-wrap:wrap;">`;
+  for (let v = 1; v <= 7; v++) {
+    html += `
+      <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid #ddd; border-radius:8px; cursor:pointer;">
+        <input type="checkbox" name="mem" value="${v}"> ${v}
+      </label>`;
+  }
+  html += `</div><div class="small" style="margin-top:6px;">Select one.</div>`;
+  return html;
+}
 function trialHTML(narration, bank) {
   return `
   <div>
@@ -208,39 +221,32 @@ function trialHTML(narration, bank) {
     <div>${chipsHTML(bank)}</div>
     <div style="margin-top:12px;">
       <label><strong>Add NEW category</strong> (comma-separated):</label><br>
-      <input id="new_labels" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;" placeholder="e.g., kitchen, fridge, search"/>
+      <input id="new_labels" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;" placeholder="e.g., Location, Action, Agent, Emotion"/>
     </div>
     <hr>
-    <h3>How well do you remember the video described (1 being no memory of the video and 7 being as if I'm seeing it right now)?</h3>
-    <div class="range-wrap">
-      <span>1</span>
-      <input type="range" id="mem" min="1" max="7" step="1" value="4" oninput="document.getElementById('mem_out').textContent=this.value">
-      <span>7</span>
-      <span>Current: <strong id="mem_out">1</strong></span>
-    </div>
-    <div class="actions">
+    <h3>How well do you remember the video described?</h3>
+    ${memoryCheckboxesHTML()}
+    <div class="actions" style="margin-top:12px;">
       <button id="next_btn">Next</button>
     </div>
   </div>`;
 }
 
-// ---------- Main ----------
+// =========================== MAIN ===========================
 (async function main(){
-  const qs = new URLSearchParams(window.location.search);
-  const nParam = (qs.get("n") || "").toLowerCase();
-  const seedParam = qs.get("seed") || "";
   const pid = qs.get("pid") || window.prompt("Participant ID:", "") || "";
   const session = "001";
 
+  // Load narrations
   const narrations = await loadNarrationsCSV();
   const totalAvailable = narrations.length;
   if (totalAvailable === 0) {
-    alert("No narrations found in narrations.csv");
+    alert("No narrations found in: " + csvParam);
     return;
   }
 
+  // Order and count
   const ordered = seededShuffle(narrations, seedParam);
-
   let target = Infinity;
   if (nParam && nParam !== "all") {
     const n = parseInt(nParam, 10);
@@ -249,8 +255,10 @@ function trialHTML(narration, bank) {
   const items = ordered.slice(0, Math.min(target, totalAvailable));
   const N_TRIALS = items.length;
 
+  // Participant-level category bank
   const labelBank = [];
 
+  // Init jsPsych
   const jsPsych = initJsPsych({
     on_finish: async function(){
       const payload = {
@@ -260,12 +268,13 @@ function trialHTML(narration, bank) {
         records: jsPsych.data.get().values(),
         final_label_bank: labelBank
       };
+
       if (APPS_SCRIPT_ENDPOINT && APPS_SCRIPT_ENDPOINT.startsWith("https")) {
         try {
+          // Use no headers with no-cors to avoid opaque body issues
           await fetch(APPS_SCRIPT_ENDPOINT, {
             method: "POST",
             mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           });
           alert("Thanks! Your responses have been submitted.");
@@ -281,29 +290,31 @@ function trialHTML(narration, bank) {
     }
   });
 
+  // Build timeline
   const timeline = [];
 
-// Welcome
-timeline.push({
-  type: HtmlButtonResponse,
-  stimulus: `
-    <div class="container">
-      <h2>Welcome</h2>
-      <p>This session contains <strong>${N_TRIALS}</strong> narrations (from ${totalAvailable} available).</p>
-      <p>For each narration, you will create <strong>categories</strong> that capture the main kinds of information in the scene.</p>
-      <p>Next, you'll see detailed instructions and an example.</p>
-    </div>
-  `,
-  choices: ["Show me the instructions"]
-});
+  // Welcome
+  const csvName = csvParam.split("/").pop();
+  timeline.push({
+    type: HtmlButtonResponse,
+    stimulus: `
+      <div class="container">
+        <h2>Welcome</h2>
+        <p>This session contains <strong>${N_TRIALS}</strong> narrations (from ${totalAvailable} available).</p>
+        <p>For each narration, you will create <strong>categories</strong> that capture the main kinds of information in the scene.</p>
+        <p>Using list: <code>${csvName}</code></p>
+        <p>Next, you'll see detailed instructions and an example.</p>
+      </div>
+    `,
+    choices: ["Show me the instructions"]
+  });
 
-// Instructions (new)
-timeline.push({
-  type: HtmlButtonResponse,
-  stimulus: INSTRUCTIONS_HTML,
-  choices: ["I’m ready to start"]
-});
-
+  // Instructions
+  timeline.push({
+    type: HtmlButtonResponse,
+    stimulus: INSTRUCTIONS_HTML,
+    choices: ["I’m ready to start"]
+  });
 
   // Trials
   items.forEach((item, idx) => {
@@ -314,18 +325,35 @@ timeline.push({
         return `<div class="container">${trialHTML(item, labelBank)}</div>`;
       },
       on_load: function(){
+        // Make the memory checkboxes behave like radios (only one can be checked)
+        const memBoxes = Array.from(document.querySelectorAll('input[name="mem"]'));
+        memBoxes.forEach(box => {
+          box.addEventListener('change', () => {
+            if (box.checked) {
+              memBoxes.forEach(b => { if (b !== box) b.checked = false; });
+            }
+          });
+        });
+
         document.getElementById("next_btn").addEventListener("click", () => {
           const checked = Array.from(document.querySelectorAll('input[name="existing"]:checked')).map(i => i.value);
           const newLabels = splitClean(document.getElementById("new_labels").value);
           const combined = [...checked, ...newLabels].filter((v,i,a)=>a.indexOf(v)===i);
 
           if (REQUIRE_AT_LEAST_ONE_LABEL && combined.length === 0) {
-            alert("Please select at least one label or add a new one.");
+            alert("Please select at least one category or add a new one.");
             return;
           }
 
           combined.forEach(lbl => { if (!labelBank.includes(lbl)) labelBank.push(lbl); });
-          const memory_rating = parseInt(document.getElementById("mem").value, 10);
+
+          // Read selected memory checkbox (nullable)
+          const memChecked = document.querySelector('input[name="mem"]:checked');
+          const memory_rating = memChecked ? parseInt(memChecked.value, 10) : null;
+          if (!memChecked) {
+  alert("Please select a memory rating (1–7).");
+  return;
+}
 
           jsPsych.data.write({
             trial_index: idx + 1,
@@ -339,23 +367,24 @@ timeline.push({
             label_bank_snapshot: labelBank.join(","),
             participant: pid,
             session: session,
-            seed: seedParam || ""
+            seed: seedParam || "",
+            csv: csvParam
           });
-// --- autosave this single trial ---
-if (APPS_SCRIPT_ENDPOINT && APPS_SCRIPT_ENDPOINT.startsWith("https")) {
-  const trialPayload = {
-    participant: pid,
-    session: session,
-    timestamp: new Date().toISOString(),
-    record: jsPsych.data.get().last(1).values()[0]  // get the most recent trial
-  };
-  fetch(APPS_SCRIPT_ENDPOINT, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(trialPayload)
-  }).catch(e => console.error("Autosave failed", e));
-}
+
+          // --- Per-trial autosave (no headers with no-cors) ---
+          if (APPS_SCRIPT_ENDPOINT && APPS_SCRIPT_ENDPOINT.startsWith("https")) {
+            const trialPayload = {
+              participant: pid,
+              session: session,
+              timestamp: new Date().toISOString(),
+              record: jsPsych.data.get().last(1).values()[0]
+            };
+            fetch(APPS_SCRIPT_ENDPOINT, {
+              method: "POST",
+              mode: "no-cors",
+              body: JSON.stringify(trialPayload)
+            }).catch(e => console.error("Autosave failed", e));
+          }
 
           jsPsych.finishTrial();
         });
