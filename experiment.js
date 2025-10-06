@@ -200,12 +200,12 @@ function trialHTML(narration, bank) {
       <input id="new_labels" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;" placeholder="e.g., kitchen, fridge, search"/>
     </div>
     <hr>
-    <h3>Memory rating</h3>
+    <h3>How well do you remember the video described (1 being no memory of the video and 7 being as if I'm seeing it right now)?</h3>
     <div class="range-wrap">
       <span>1</span>
       <input type="range" id="mem" min="1" max="7" step="1" value="4" oninput="document.getElementById('mem_out').textContent=this.value">
       <span>7</span>
-      <span>Current: <strong id="mem_out">4</strong></span>
+      <span>Current: <strong id="mem_out">1</strong></span>
     </div>
     <div class="actions">
       <button id="next_btn">Next</button>
