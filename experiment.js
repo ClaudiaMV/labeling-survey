@@ -1,7 +1,7 @@
 // --- ESM imports (v7) ---
-import { initJsPsych } from "https://cdn.jsdelivr.net/npm/jspsych@7.3.3/dist/index.js";
-import HtmlButtonResponse from "https://cdn.jsdelivr.net/npm/@jspsych/plugin-html-button-response@1.1.3/dist/index.js";
-import HtmlKeyboardResponse from "https://cdn.jsdelivr.net/npm/@jspsych/plugin-html-keyboard-response@1.1.3/dist/index.js";
+import { initJsPsych } from "jspsych";
+import HtmlButtonResponse from "@jspsych/plugin-html-button-response";
+import HtmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
 
 // experiment.js  — CSV, reusable for any number of narrations
 // - Uses ALL narrations by default (no fixed cap)
