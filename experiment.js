@@ -9,7 +9,7 @@ import HtmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
 // - Optional reproducible order via ?seed=STRING
 // - Optional Apps Script endpoint for Google Sheets saving
 
-const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbz8pi5HN_6ZXnpkuZCORV7wlrYkhJ8PHFSCRqFSTYb9NEa7mzdwZJeSxFVD6WZbETKg/exec"; // leave blank to download CSV locally
+const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyghpxnJU60w-XaBq_s-wnpNa9dJd7HGfYpI4Hw-zkjxmKZhc4u4EB9wPsn69MZ0nY1/exec"; // leave blank to download CSV locally
 const REQUIRE_AT_LEAST_ONE_LABEL = true;
 
 // ---------- CSV parsing ----------
