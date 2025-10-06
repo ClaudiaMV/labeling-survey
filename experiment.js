@@ -277,6 +277,21 @@ function trialHTML(narration, bank) {
             session: session,
             seed: seedParam || ""
           });
+// --- autosave this single trial ---
+if (APPS_SCRIPT_ENDPOINT && APPS_SCRIPT_ENDPOINT.startsWith("https")) {
+  const trialPayload = {
+    participant: pid,
+    session: session,
+    timestamp: new Date().toISOString(),
+    record: jsPsych.data.get().last(1).values()[0]  // get the most recent trial
+  };
+  fetch(APPS_SCRIPT_ENDPOINT, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(trialPayload)
+  }).catch(e => console.error("Autosave failed", e));
+}
 
           jsPsych.finishTrial();
         });
