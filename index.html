@@ -10,6 +10,17 @@
 
   <!-- jsPsych v7 CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspsych@7.3.3/css/jspsych.css">
+
+  <!-- Import map to resolve bare specifiers to CDN URLs -->
+  <script type="importmap">
+  {
+    "imports": {
+      "jspsych": "https://cdn.jsdelivr.net/npm/jspsych@7.3.3/dist/index.js",
+      "@jspsych/plugin-html-button-response": "https://cdn.jsdelivr.net/npm/@jspsych/plugin-html-button-response@1.1.3/dist/index.js",
+      "@jspsych/plugin-html-keyboard-response": "https://cdn.jsdelivr.net/npm/@jspsych/plugin-html-keyboard-response@1.1.3/dist/index.js"
+    }
+  }
+  </script>
 </head>
 <body>
   <div class="container" id="app">
