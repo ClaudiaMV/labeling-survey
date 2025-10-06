@@ -11,6 +11,65 @@ import HtmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
 
 const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyghpxnJU60w-XaBq_s-wnpNa9dJd7HGfYpI4Hw-zkjxmKZhc4u4EB9wPsn69MZ0nY1/exec"; // leave blank to download CSV locally
 const REQUIRE_AT_LEAST_ONE_LABEL = true;
+const INSTRUCTIONS_HTML = `
+  <div class="container" style="max-width:800px; margin:0 auto; text-align:left;">
+    <h2>Instructions</h2>
+
+    <p>Thank you for taking part in this task. Your role is to help us create <strong>categories</strong> that can be used to describe a wide range of narrated videos.</p>
+
+    <p>You will read several short <strong>narrations</strong> that describe different scenes. After reviewing each narration, your goal is to identify the <strong>key types of information</strong> that could be used to describe other, similar narrations.</p>
+
+    <hr>
+
+    <h3>What to Do</h3>
+    <ol>
+      <li><strong>Read the narration carefully.</strong>
+        <ul><li>Focus on what is being described rather than how it is written.</li></ul>
+      </li>
+      <li><strong>Identify important elements.</strong>
+        <ul><li>Think about what kinds of things are mentioned; for example, <em>places, actions, people, emotions, objects,</em> or <em>interactions</em>.</li></ul>
+      </li>
+      <li><strong>Create categories.</strong>
+        <ul>
+          <li>For each narration, list the <strong>broad categories</strong> that could capture the main information in the scene.</li>
+          <li>Each category should be general enough to apply to other narrations.</li>
+        </ul>
+        <div style="border-left:4px solid #ddd; padding:8px 12px; margin:10px 0;">
+          <strong>Example</strong><br>
+          <em>Narration:</em> “A woman waters the flowers in her garden while a dog plays nearby.”<br>
+          <em>Possible categories:</em>
+          <ul style="margin:6px 0 0 18px;">
+            <li><strong>Location / Setting</strong> (garden)</li>
+            <li><strong>Action / Activity</strong> (watering, playing)</li>
+            <li><strong>People / Agents</strong> (woman, dog)</li>
+            <li><strong>Objects</strong> (flowers, watering can)</li>
+          </ul>
+        </div>
+      </li>
+      <li><strong>Avoid narrative retelling.</strong>
+        <ul><li>You are not re-describing the scene. Instead, identify <em>types</em> or <em>dimensions</em> of information that appear in the narration.</li></ul>
+      </li>
+      <li><strong>Use clear and concise category names.</strong>
+        <ul><li>A category should be a <em>single word or short phrase</em> (e.g., <em>Emotion</em>, <em>Interaction Type</em>, <em>Movement</em>, <em>Time of Day</em>).</li></ul>
+      </li>
+      <li><strong>Add new categories when needed.</strong>
+        <ul><li>If a narration includes something not covered by your existing list, create a new category for it.</li></ul>
+      </li>
+    </ol>
+
+    <h3>Tips</h3>
+    <ul>
+      <li>Categories describe <strong>what kind of information</strong> the narration conveys, not specific content from one video.</li>
+      <li>Ask yourself whether your categories would still make sense for a completely different narration.</li>
+      <li>There are no “right” or “wrong” answers — we’re interested in how people naturally organize descriptive information.</li>
+    </ul>
+
+    <div style="margin-top:14px; font-style:italic;">
+      Note: In the interface below, we call these <strong>labels</strong>. Treat “labels” as the categories you are creating.
+    </div>
+  </div>
+`;
+
 
 // ---------- CSV parsing ----------
 function parseCSV(text) {
@@ -173,7 +232,7 @@ function trialHTML(narration, bank) {
   const qs = new URLSearchParams(window.location.search);
   const nParam = (qs.get("n") || "").toLowerCase();
   const seedParam = qs.get("seed") || "";
-  const pid = qs.get("pid") || window.prompt("Participant ID (e.g., P01):", "") || "";
+  const pid = qs.get("pid") || window.prompt("Participant ID:", "") || "";
   const session = "001";
 
   const narrations = await loadNarrationsCSV();
@@ -227,19 +286,27 @@ function trialHTML(narration, bank) {
 
   const timeline = [];
 
-  // Welcome
-  timeline.push({
-    type: HtmlButtonResponse,
-    stimulus: `
-      <div class="container">
-        <h2>Welcome</h2>
-        <p>This session contains <strong>${N_TRIALS}</strong> narrations (from ${totalAvailable} available).</p>
-        <p>For each narration, select any labels from your own growing suggestion list (it starts empty), and/or add new labels (comma-separated).</p>
-        <p>Then rate how well you remember the video described (1–7).</p>
-      </div>
-    `,
-    choices: ["Begin"]
-  });
+// Welcome
+timeline.push({
+  type: HtmlButtonResponse,
+  stimulus: `
+    <div class="container">
+      <h2>Welcome</h2>
+      <p>This session contains <strong>${N_TRIALS}</strong> narrations (from ${totalAvailable} available).</p>
+      <p>For each narration, you will create <strong>categories</strong> (called “labels” in the interface) that capture the main kinds of information in the scene.</p>
+      <p>Next, you'll see detailed instructions and an example.</p>
+    </div>
+  `,
+  choices: ["Show me the instructions"]
+});
+
+// Instructions (new)
+timeline.push({
+  type: HtmlButtonResponse,
+  stimulus: INSTRUCTIONS_HTML,
+  choices: ["I’m ready to start"]
+});
+
 
   // Trials
   items.forEach((item, idx) => {
